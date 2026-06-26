@@ -1,0 +1,14 @@
+.venv314/
+.venv/
+__pycache__/
+*.pyc
+.env
+*.log
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+node_modules/
+package.json
+package-lock.json
+pronunciation_test/
+.vercel/

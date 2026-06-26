@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Interactive AI Tutor — CBSE Class 9 Maths</title>
+<link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="avatar">📐</div>
+    <div class="header-title">
+      <h1>Priya Ma'am</h1>
+      <p class="subtitle">Your CBSE Class 9 Maths Tutor</p>
+    </div>
+    <div class="header-tools">
+      <button id="playPauseButton" class="tool-button" title="Pause/Play voice" hidden>⏸️</button>
+      <button id="notepadButton" class="tool-button" title="Open Notepad">📝</button>
+      <button id="calculatorButton" class="tool-button" title="Open Calculator">🧮</button>
+    </div>
+  </header>
+
+  <main class="chat-container" id="chatContainer">
+    <div class="message assistant">
+      <p>Vanakkam! 👋 I'm Priya Ma'am, your Maths tutor. Konjam doubt iruka? Type panunga or hold the mic button and ask me anything from Class 9 Maths — Number Systems, Polynomials, Geometry, Heron's Formula, Statistics, etc.</p>
+    </div>
+  </main>
+
+  <button id="newProblemButton" class="new-problem-button" title="Start a new problem">＋ New</button>
+
+  <footer class="input-bar">
+    <button id="micButton" class="mic-button" title="Hold to talk">🎙️</button>
+    <input id="textInput" type="text" placeholder="Type your doubt here... (English or Tanglish)" />
+    <button id="sendButton" class="send-button">Send</button>
+  </footer>
+
+  <div id="statusBar" class="status-bar"></div>
+
+  <audio id="replyAudio" hidden></audio>
+
+  <!-- Notepad panel -->
+  <div id="notepadPanel" class="side-panel" hidden>
+    <div class="side-panel-header">
+      <span>📝 Notepad</span>
+      <div>
+        <button id="notepadClearButton" class="panel-icon-button" title="Clear notes">🗑️</button>
+        <button id="notepadCloseButton" class="panel-icon-button" title="Close">✕</button>
+      </div>
+    </div>
+    <textarea id="notepadTextarea" class="notepad-textarea" placeholder="Rough work, notes, anything..."></textarea>
+  </div>
+
+  <!-- Calculator panel -->
+  <div id="calculatorPanel" class="side-panel" hidden>
+    <div class="side-panel-header">
+      <span>🧮 Calculator</span>
+      <button id="calculatorCloseButton" class="panel-icon-button" title="Close">✕</button>
+    </div>
+    <div class="calculator-body">
+      <input id="calcDisplay" class="calc-display" type="text" value="0" readonly />
+      <div class="calc-grid">
+        <button class="calc-btn calc-btn-fn" data-calc="clear">C</button>
+        <button class="calc-btn calc-btn-fn" data-calc="backspace">⌫</button>
+        <button class="calc-btn calc-btn-fn" data-calc="sqrt">√</button>
+        <button class="calc-btn calc-btn-op" data-calc="/">÷</button>
+
+        <button class="calc-btn" data-calc="7">7</button>
+        <button class="calc-btn" data-calc="8">8</button>
+        <button class="calc-btn" data-calc="9">9</button>
+        <button class="calc-btn calc-btn-op" data-calc="*">×</button>
+
+        <button class="calc-btn" data-calc="4">4</button>
+        <button class="calc-btn" data-calc="5">5</button>
+        <button class="calc-btn" data-calc="6">6</button>
+        <button class="calc-btn calc-btn-op" data-calc="-">−</button>
+
+        <button class="calc-btn" data-calc="1">1</button>
+        <button class="calc-btn" data-calc="2">2</button>
+        <button class="calc-btn" data-calc="3">3</button>
+        <button class="calc-btn calc-btn-op" data-calc="+">+</button>
+
+        <button class="calc-btn" data-calc="0">0</button>
+        <button class="calc-btn" data-calc=".">.</button>
+        <button class="calc-btn calc-btn-fn" data-calc="percent">%</button>
+        <button class="calc-btn calc-btn-eq" data-calc="=">=</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
