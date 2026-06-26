@@ -1,2 +1,19 @@
+[project]
+name = "interactive-ai-tutor"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "python-dotenv>=1.0",
+    "pydantic>=2.9",
+    "python-multipart>=0.0.12",
+    "httpx>=0.27",
+    "groq>=0.13",
+    "openai>=1.54",
+    "elevenlabs>=1.10",
+    "upstash-redis>=1.2",
+]
+
 [tool.vercel]
 entrypoint = "vercel_app:app"

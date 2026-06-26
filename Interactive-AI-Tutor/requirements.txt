@@ -1,3 +1,6 @@
+# Used for local `pip install -r requirements.txt`. Vercel deploys read
+# dependencies from pyproject.toml's [project.dependencies] instead — keep
+# both lists in sync when adding/removing a package.
 fastapi>=0.115
 uvicorn[standard]>=0.32
 python-dotenv>=1.0
