@@ -1,0 +1,332 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  background: #f4f6fb;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #5b3df0, #8a6cf2);
+  color: white;
+}
+
+.app-header .avatar {
+  font-size: 28px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.app-header .subtitle {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.header-title {
+  flex: 1;
+}
+
+.header-tools {
+  display: flex;
+  gap: 8px;
+}
+
+.tool-button {
+  background: rgba(255, 255, 255, 0.18);
+  border: none;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  font-size: 16px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.tool-button:not([hidden]) {
+  display: flex;
+}
+
+.tool-button:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.tool-button.active {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.chat-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.message {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  line-height: 1.45;
+  font-size: 14.5px;
+  white-space: pre-wrap;
+}
+
+.message.assistant {
+  align-self: flex-start;
+  background: #ffffff;
+  border: 1px solid #e3e6ef;
+  border-bottom-left-radius: 4px;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: #5b3df0;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message.pending {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  border-top: 1px solid #e3e6ef;
+}
+
+#textInput {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 20px;
+  border: 1px solid #d7dae3;
+  font-size: 14px;
+  outline: none;
+}
+
+.send-button {
+  background: #5b3df0;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 18px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.send-button:hover {
+  background: #4a30d0;
+}
+
+.mic-button {
+  background: #ffffff;
+  border: 2px solid #5b3df0;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mic-button.recording {
+  background: #ff4d4f;
+  border-color: #ff4d4f;
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.5); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 77, 79, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0); }
+}
+
+.status-bar {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  padding: 4px 0 8px;
+  min-height: 16px;
+}
+
+/* --- Side panels (Notepad / Calculator) ---------------------------------- */
+
+.side-panel {
+  position: fixed;
+  top: 78px;
+  right: 14px;
+  width: min(320px, calc(100vw - 28px));
+  max-height: calc(100vh - 100px);
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  border: 1px solid #e3e6ef;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 50;
+}
+
+.side-panel:not([hidden]) {
+  display: flex;
+}
+
+.side-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #f4f6fb;
+  border-bottom: 1px solid #e3e6ef;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.panel-icon-button {
+  background: none;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.panel-icon-button:hover {
+  background: #e3e6ef;
+}
+
+.notepad-textarea {
+  flex: 1;
+  min-height: 220px;
+  border: none;
+  outline: none;
+  resize: vertical;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+/* --- Calculator ----------------------------------------------------------- */
+
+.calculator-body {
+  padding: 12px;
+}
+
+.calc-display {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 22px;
+  text-align: right;
+  padding: 10px 12px;
+  border: 1px solid #d7dae3;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: #f9fafc;
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.calc-btn {
+  padding: 14px 0;
+  font-size: 16px;
+  border: 1px solid #e3e6ef;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.calc-btn:hover {
+  background: #f4f6fb;
+}
+
+.calc-btn-op {
+  background: #ede9fe;
+  color: #5b3df0;
+  font-weight: 600;
+}
+
+.calc-btn-fn {
+  background: #f4f6fb;
+  color: #555;
+}
+
+.calc-btn-eq {
+  background: #5b3df0;
+  color: white;
+  font-weight: 600;
+}
+
+.calc-btn-eq:hover {
+  background: #4a30d0;
+}
+
+/* --- Continue button (staged solutions) ----------------------------------- */
+
+.continue-button {
+  align-self: flex-start;
+  margin-top: -2px;
+  background: #ede9fe;
+  color: #5b3df0;
+  border: 1px solid #d8cdfb;
+  border-radius: 16px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.continue-button:hover {
+  background: #ddd5fb;
+}
+
+/* --- New Problem button --------------------------------------------------- */
+
+.new-problem-button {
+  position: fixed;
+  right: 16px;
+  bottom: 78px;
+  background: white;
+  color: #5b3df0;
+  border: 1.5px solid #5b3df0;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  z-index: 40;
+}
+
+.new-problem-button:hover {
+  background: #ede9fe;
+}
