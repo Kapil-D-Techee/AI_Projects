@@ -41,6 +41,25 @@ Student mic/text -> FastAPI backend -> STT (Sarvam saaras:v3) -> LLM (OpenAI gpt
 - **Every provider is swappable** without touching app logic — see
   `backend/app/config/providers.py` and `.env`.
 
+## v2 (this branch): Image upload for diagrams/graphs
+
+- A **(+) button** next to the text input lets a student attach a photo of a
+  diagram/graph (e.g. from their NCERT textbook), with an optional typed
+  caption asking a specific question about it (`POST /api/chat/image`).
+- Vision-capable models only: works with `LLM_PROVIDER=openai`
+  (`gpt-4o` / `gpt-4o-mini` both support image input via the same chat
+  completions API). **Not supported on `LLM_PROVIDER=groq`** — the image
+  endpoint raises a clear error rather than silently ignoring the picture.
+- The tutor is instructed to describe what it sees in the image FIRST (so
+  the student can correct a misread), then applies the SAME staged-solution
+  (hints-first, `---CONTINUE---`) teaching method as text-based problems —
+  image questions are not treated as a separate, simpler interaction.
+- Images are capped at 8MB and `image/jpeg|png|webp|gif`; rejected with a
+  clear 413/415 otherwise. The image itself is NOT stored in conversation
+  history (to avoid bloating Redis with base64 blobs) — only a short text
+  placeholder ("[Uploaded an image of a diagram/graph] <caption>") is kept,
+  so later text turns still have conversational context.
+
 ## Project layout
 
 ```

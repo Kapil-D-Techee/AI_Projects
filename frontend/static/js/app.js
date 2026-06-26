@@ -198,6 +198,10 @@ async function playReplyChunks(chunks) {
 }
 
 async function sendText(message) {
+  if (attachedImageFile) {
+    await sendImage(attachedImageFile, message);
+    return;
+  }
   if (!message.trim()) return;
   addMessage("user", message);
   textInput.value = "";
@@ -225,6 +229,41 @@ async function sendText(message) {
   } catch (err) {
     pending.classList.remove("pending");
     pending.textContent = "Sorry, something went wrong. Please try again.";
+    setStatus("Error — please retry");
+    console.error(err);
+  }
+}
+
+// Sends an uploaded diagram/graph image, with an optional caption typed in
+// the same text box. Mirrors sendText/sendVoice's pending-bubble pattern.
+async function sendImage(imageFile, caption) {
+  const userBubbleText = caption && caption.trim() ? caption : "(uploaded a diagram)";
+  addMessage("user", userBubbleText);
+  clearAttachedImage();
+  textInput.value = "";
+
+  const pending = addMessage("assistant", "Priya Ma'am is looking at your diagram...");
+  pending.classList.add("pending");
+  setStatus("Analyzing image...");
+
+  const formData = new FormData();
+  formData.append("session_id", sessionId);
+  formData.append("image", imageFile, imageFile.name || "diagram.jpg");
+  formData.append("caption", caption || "");
+
+  try {
+    const res = await fetch("/api/chat/image", { method: "POST", body: formData });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
+    pending.classList.remove("pending");
+    pending.textContent = data.reply_text;
+    if (data.has_more_stages) addContinueButton(pending);
+    setStatus("Speaking...");
+    await playReplyChunks(data.speech_chunks);
+    setStatus("");
+  } catch (err) {
+    pending.classList.remove("pending");
+    pending.textContent = "Sorry, something went wrong with the image. Please try again.";
     setStatus("Error — please retry");
     console.error(err);
   }
@@ -540,4 +579,55 @@ newProblemButton.addEventListener("click", async () => {
   }
   addMessage("assistant", "Sari kanna, sollunga — adha podunga, vera ennoda doubt?");
   textInput.focus();
+});
+
+// --- (+) Image attach: diagrams/graphs (v2) --------------------------------
+const attachImageButton = document.getElementById("attachImageButton");
+const imageFileInput = document.getElementById("imageFileInput");
+const imagePreviewBar = document.getElementById("imagePreviewBar");
+const imagePreviewThumb = document.getElementById("imagePreviewThumb");
+const imagePreviewName = document.getElementById("imagePreviewName");
+const imagePreviewRemoveButton = document.getElementById("imagePreviewRemoveButton");
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // keep in sync with backend's _MAX_IMAGE_BYTES
+let attachedImageFile = null;
+let attachedImagePreviewUrl = null;
+
+function clearAttachedImage() {
+  attachedImageFile = null;
+  if (attachedImagePreviewUrl) {
+    URL.revokeObjectURL(attachedImagePreviewUrl);
+    attachedImagePreviewUrl = null;
+  }
+  imageFileInput.value = "";
+  imagePreviewBar.hidden = true;
+}
+
+function setAttachedImage(file) {
+  attachedImageFile = file;
+  if (attachedImagePreviewUrl) URL.revokeObjectURL(attachedImagePreviewUrl);
+  attachedImagePreviewUrl = URL.createObjectURL(file);
+  imagePreviewThumb.src = attachedImagePreviewUrl;
+  imagePreviewName.textContent = file.name || "diagram.jpg";
+  imagePreviewBar.hidden = false;
+  textInput.placeholder = "Add a question about this diagram (optional)...";
+  textInput.focus();
+}
+
+attachImageButton.addEventListener("click", () => imageFileInput.click());
+
+imageFileInput.addEventListener("change", () => {
+  const file = imageFileInput.files && imageFileInput.files[0];
+  if (!file) return;
+  if (file.size > MAX_IMAGE_BYTES) {
+    setStatus("Image too large (max 8MB) — please choose a smaller photo.");
+    imageFileInput.value = "";
+    return;
+  }
+  setAttachedImage(file);
+});
+
+imagePreviewRemoveButton.addEventListener("click", () => {
+  clearAttachedImage();
+  textInput.placeholder = "Type your doubt here... (English or Tanglish)";
 });

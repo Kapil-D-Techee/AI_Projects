@@ -28,7 +28,15 @@
 
   <button id="newProblemButton" class="new-problem-button" title="Start a new problem">＋ New</button>
 
+  <div id="imagePreviewBar" class="image-preview-bar" hidden>
+    <img id="imagePreviewThumb" class="image-preview-thumb" alt="Selected diagram preview" />
+    <span class="image-preview-name" id="imagePreviewName"></span>
+    <button id="imagePreviewRemoveButton" class="panel-icon-button" title="Remove image">✕</button>
+  </div>
+
   <footer class="input-bar">
+    <button id="attachImageButton" class="attach-button" title="Attach a photo of a diagram/graph">＋</button>
+    <input id="imageFileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
     <button id="micButton" class="mic-button" title="Hold to talk">🎙️</button>
     <input id="textInput" type="text" placeholder="Type your doubt here... (English or Tanglish)" />
     <button id="sendButton" class="send-button">Send</button>

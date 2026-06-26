@@ -85,6 +85,32 @@ def _strip_latex(text: str) -> str:
     return text
 
 
+_LATEX_INLINE_PAREN = re.compile(r"\\\((.*?)\\\)")
+_LATEX_DISPLAY_BRACKET = re.compile(r"\\\[(.*?)\\\]", re.DOTALL)
+
+
+def clean_display_text(text: str) -> str:
+    """
+    Light LaTeX cleanup for text shown on screen (the chat transcript), as
+    opposed to to_speech_text's full conversion for audio. Unwraps "\\(x\\)"
+    -> "x" and "\\text{}"/"\\frac{}{}" wrappers, but does NOT convert symbols
+    to spoken words (keeps "°", "×" etc. as-is) since those read fine visually.
+    """
+    out = text.replace(r"^\circ", "°")  # "70^\circ" -> "70°" (drop the caret too)
+    out = _LATEX_INLINE_PAREN.sub(r"\1", out)
+    out = _LATEX_DISPLAY_BRACKET.sub(r"\1", out)
+    out = _LATEX_FRAC.sub(r"\1/\2", out)
+    out = _LATEX_TEXT_WRAPPER.sub(r"\1", out)
+    out = out.replace(r"\circ", "°").replace(r"\degree", "°")
+    out = out.replace(r"\times", "×").replace(r"\cdot", "×").replace(r"\div", "÷")
+    out = out.replace(r"\pm", "±").replace(r"\angle", "∠").replace(r"\sqrt", "√")
+    # Strip any remaining "\command" tokens and stray braces we don't recognize.
+    out = re.sub(r"\\[a-zA-Z]+", "", out)
+    out = out.replace("{", "").replace("}", "").replace("$", "")
+    out = re.sub(r"\s+", " ", out).strip()
+    return out
+
+
 _FRACTION_TOKEN = r"[A-Za-z0-9]+(?:\([^)]*\))?"  # e.g. "3", "x", "p(-2)", "g(x+1)"
 _ENGLISH_SLASH_IDIOMS = re.compile(
     r"\b(and/or|his/her|he/she|him/her)\b", re.IGNORECASE

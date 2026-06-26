@@ -2,6 +2,7 @@
 Routes for the voice/text tutoring loop:
   POST /api/chat/text         - text-only turn (typed question -> first stage's text + speech chunks)
   POST /api/chat/voice        - voice turn (recorded audio -> transcript + first stage's text + speech chunks)
+  POST /api/chat/image        - image turn (uploaded diagram/graph + optional caption -> first stage's text + speech chunks)
   POST /api/chat/continue     - reveal the next held-back stage of a staged solution
   POST /api/chat/new_problem  - explicitly discard the current problem's held-back stages
   POST /api/chat/speak_chunk  - synthesize audio for ONE speech chunk (called per chunk by the frontend)
@@ -11,9 +12,10 @@ Routes for the voice/text tutoring loop:
 Staged solutions: the LLM is instructed (see teacher_system_prompt.py) to
 split problem-solving answers into 2-3 stages separated by a literal
 "---CONTINUE---" marker, so the student gets the concept/approach first and
-has to attempt the problem before seeing further steps. chat_text/chat_voice
-only return Stage 1; later stages are held server-side in session_store and
-revealed one at a time via /continue when the student clicks the button.
+has to attempt the problem before seeing further steps. chat_text/chat_voice/
+chat_image only return Stage 1; later stages are held server-side in
+session_store and revealed one at a time via /continue when the student
+clicks the button.
 
 A side question asked while a problem's stages are still pending (e.g. "wait
 why is it 180 degrees again?") does NOT discard those pending stages — only a
@@ -24,14 +26,14 @@ without losing their place in it.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel
 
 from app.config.providers import TTS
 from app.services import session_store
-from app.services.llm_service import generate_reply
-from app.services.math_speech import split_into_speech_chunks, to_speech_text
+from app.services.llm_service import generate_reply, generate_reply_with_image
+from app.services.math_speech import clean_display_text, split_into_speech_chunks, to_speech_text
 from app.services.stt_service import transcribe_audio
 from app.services.tts_service import synthesize_speech
 
@@ -68,7 +70,7 @@ class TurnResponse(BaseModel):
 async def _process_llm_reply(session_id: str, reply: str) -> tuple[str, list[str], bool]:
     """
     Splits a fresh LLM reply on the ---CONTINUE--- marker and updates this
-    session's pending stages, then returns (first_stage_text, speech_chunks,
+    session's pending stages, then returns (display_text, speech_chunks,
     has_more_stages) for the caller to build a response with.
 
     Only REPLACES pending stages when this reply itself is multi-stage (a new
@@ -76,6 +78,11 @@ async def _process_llm_reply(session_id: str, reply: str) -> tuple[str, list[str
     about a problem the student is already mid-solving) leaves any existing
     pending stages untouched, so a clarifying question doesn't make the
     student lose their place in the problem they were working on.
+
+    speech_chunks are derived from the RAW stage text (to_speech_text does
+    its own, more aggressive LaTeX-to-spoken-words conversion); display_text
+    only gets the lighter clean_display_text pass, which unwraps LaTeX
+    delimiters but keeps symbols like "°"/"×" as-is for on-screen reading.
     """
     stages = _split_stages(reply)
     first_stage = stages[0] if stages else reply
@@ -84,7 +91,8 @@ async def _process_llm_reply(session_id: str, reply: str) -> tuple[str, list[str
         await session_store.set_pending_stages(session_id, stages[1:])
 
     has_more = len(stages) > 1 or await session_store.has_pending_stages(session_id)
-    return first_stage, split_into_speech_chunks(first_stage), has_more
+    speech_chunks = split_into_speech_chunks(first_stage)
+    return clean_display_text(first_stage), speech_chunks, has_more
 
 
 @router.post("/text", response_model=TurnResponse)
@@ -124,6 +132,49 @@ async def chat_voice(
     )
 
 
+_MAX_IMAGE_BYTES = 8 * 1024 * 1024  # 8MB — generous for a phone photo of a textbook page
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
+
+@router.post("/image", response_model=TurnResponse)
+async def chat_image(
+    session_id: str = Form(...),
+    image: UploadFile = File(...),
+    caption: str = Form(""),
+) -> TurnResponse:
+    """Image turn: student uploads a photo of a diagram/graph (e.g. from their
+    NCERT textbook) via the (+) button, with an optional typed/spoken caption
+    asking a specific question about it. Only works when LLM_PROVIDER=openai
+    (gpt-4o / gpt-4o-mini are vision-capable; Groq's hosted text models here
+    are not)."""
+    image_bytes = await image.read()
+    if len(image_bytes) > _MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="Image too large (max 8MB).")
+
+    media_type = image.content_type or "image/jpeg"
+    if media_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=415, detail=f"Unsupported image type: {media_type}")
+
+    # Store a lightweight text placeholder in history (not the image bytes
+    # themselves) so later text turns still have context like "what was that
+    # diagram about?" without bloating session storage with base64 images.
+    history_note = f"[Uploaded an image of a diagram/graph] {caption}".strip()
+    await session_store.append_turn(session_id, "user", history_note)
+
+    reply = await generate_reply_with_image(
+        await session_store.get_history(session_id), image_bytes, media_type, caption
+    )
+    await session_store.append_turn(session_id, "assistant", reply)
+
+    first_stage, speech_chunks, has_more = await _process_llm_reply(session_id, reply)
+    return TurnResponse(
+        session_id=session_id,
+        reply_text=first_stage,
+        speech_chunks=speech_chunks,
+        has_more_stages=has_more,
+    )
+
+
 class ContinueRequest(BaseModel):
     session_id: str
 
@@ -146,7 +197,7 @@ async def chat_continue(payload: ContinueRequest) -> ContinueResponse:
 
     return ContinueResponse(
         session_id=payload.session_id,
-        reply_text=next_stage,
+        reply_text=clean_display_text(next_stage),
         speech_chunks=split_into_speech_chunks(next_stage),
         has_more_stages=has_more,
     )
