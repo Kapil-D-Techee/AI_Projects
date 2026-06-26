@@ -1,8 +1,3 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "vercel_app.py": {
-      "excludeFiles": "{.venv314/**,pronunciation_test/**,*.mp3,server_test.log,README.md}"
-    }
-  }
+  "$schema": "https://openapi.vercel.sh/vercel.json"
 }
