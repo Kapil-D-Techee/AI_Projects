@@ -104,7 +104,7 @@ push-to-talk; typing works without mic permission.
 | Sarvam AI             | STT (saaras:v3) + TTS (bulbul:v3), default     | sarvam.ai            |
 | Groq (optional)       | Alternate LLM (Llama 3.3 70B) / STT backend    | console.groq.com     |
 | ElevenLabs (optional) | Alternate TTS backend                          | elevenlabs.io        |
-| Upstash Redis (optional) | Session storage across cold starts/replicas    | vercel.com / upstash.com |
+| Upstash Redis (recommended) | Session storage across cold starts/replicas | render.com / upstash.com |
 
 ## Switching providers later
 
@@ -116,42 +116,47 @@ Edit `.env` (no code changes needed):
 - `TTS_PROVIDER=google_cloud` once a Google Cloud TTS branch is added to
   `tts_service.py` (placeholder for native Tamil voice support).
 
-## Deploying on Railway
+## Deploying on Render
 
-Railway runs this as a normal long-lived container (not serverless), which is
+Render's free plan supports deploying any branch (not just `main`), which is
 why it was chosen over Vercel: Vercel only deploys whatever's on `main`, so
 testing a branch like `Interactive-AI-Tutor-mini` separately from v1 isn't
-possible there. Railway deploys per-branch/per-service instead.
+possible there. The tradeoff is that Render's free instances spin down after
+15 minutes of inactivity and take 30-60s to cold-start on the next request —
+similar to Vercel's serverless cold starts, see the Redis note below.
 
-1. **Create a new service** from this GitHub repo, pointing it at the
-   `Interactive-AI-Tutor-mini` branch (Railway → New Project → Deploy from
-   GitHub repo → select branch). If the repo also contains the v1 project,
-   set this service's **Root Directory** to wherever this folder lives in
-   the repo.
-2. **Runtime + start command** are already configured for you:
-   `runtime.txt` pins Python 3.13 (Railway's Railpack builder doesn't yet
-   support 3.14, which is what's used for local dev), and `railway.json`
-   sets the start command to
+1. **Create a new Web Service** from this GitHub repo (Render dashboard →
+   New → Web Service → connect `Kapil-D-Techee/AI_Projects`), and pick the
+   `Interactive-AI-Tutor-mini` branch. If the repo also contains the v1
+   project at its root, set this service's **Root Directory** to wherever
+   this folder lives in the repo.
+2. **Runtime + start command** are already configured for you via
+   `render.yaml` (a Render "Blueprint"): `.python-version` pins Python 3.14
+   to match local dev exactly (Render supports 3.14 directly, unlike some
+   other platforms), and the start command is
    `uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT`.
-3. **Set your `.env` values** as Variables in the Railway service settings
-   (`GROQ_API_KEY`/`OPENAI_API_KEY`, `SARVAM_API_KEY`, `LLM_PROVIDER`,
-   `LLM_MODEL`, etc. — same names as `.env.example`).
-4. **Upstash Redis is optional here**, unlike on Vercel. Railway's container
-   stays warm between requests, so the in-memory fallback in
-   `session_store.py` keeps conversation history and staged-solution
-   progress just fine for a single instance. Only add the Upstash Redis
-   integration (which injects `UPSTASH_REDIS_REST_URL` /
-   `UPSTASH_REDIS_REST_TOKEN`) if you scale to multiple replicas, since
-   in-memory state isn't shared across them.
-5. Deploy. Railway's Railpack builder auto-detects Python via
-   `requirements.txt` and runs the start command from `railway.json`
-   directly — no shim module needed (that's a Vercel-only requirement,
-   see `vercel_app.py`).
+   If you create the service by hand instead of via Blueprint, set the
+   **Build Command** to `pip install -r requirements.txt` and paste the
+   start command above.
+3. **Set your `.env` values** as Environment Variables in the Render
+   service settings (`GROQ_API_KEY`/`OPENAI_API_KEY`, `SARVAM_API_KEY`,
+   `LLM_PROVIDER`, `LLM_MODEL`, etc. — same names as `.env.example`).
+4. **Upstash Redis is recommended here**, same as on Vercel. Render's free
+   tier sleeps the instance after 15 minutes idle, so the in-memory
+   fallback in `session_store.py` loses conversation history and
+   staged-solution progress on every cold start. Connect an Upstash Redis
+   database (separately, at upstash.com — Render doesn't have Vercel's
+   one-click Marketplace integration) and set
+   `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` as Environment
+   Variables to avoid this.
+5. Deploy. Render auto-detects Python via `requirements.txt` and runs the
+   start command directly — no shim module needed (that's a Vercel-only
+   requirement, see `vercel_app.py`).
 
 ## Deploying on Vercel
 
 This is a standard FastAPI app deployed as a single Vercel Function. Vercel
-only deploys the `main` branch by default, which is why Railway (above) is
+only deploys the `main` branch by default, which is why Render (above) is
 used for testing this branch independently.
 
 1. **Connect an Upstash Redis integration** (Vercel dashboard → your project
