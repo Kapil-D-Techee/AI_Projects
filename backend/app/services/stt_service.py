@@ -41,14 +41,19 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.webm") -> 
             # "codemix" (Tamil/English mixed transcription) is only a valid
             # mode for the saaras family; saarika doesn't accept it.
             form_data["mode"] = "codemix"
+        content_type = "audio/ogg" if filename.endswith(".ogg") else "audio/webm"
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 _SARVAM_STT_URL,
                 headers={"api-subscription-key": api_key},
-                files={"file": (filename, audio_bytes)},
+                files={"file": (filename, audio_bytes, content_type)},
                 data=form_data,
             )
-            response.raise_for_status()
+            if response.is_error:
+                # Surface Sarvam's actual error body (raise_for_status alone
+                # only gives the status code) so a bad request shows exactly
+                # what was rejected instead of a bare "400 Bad Request".
+                raise RuntimeError(f"Sarvam STT {response.status_code}: {response.text}")
             return response.json()["transcript"].strip()
 
     if STT.provider == "groq_whisper":

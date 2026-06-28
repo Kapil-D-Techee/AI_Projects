@@ -317,9 +317,10 @@ async function sendVoice(audioBlob) {
   pendingUser.classList.add("pending");
   setStatus("Transcribing your question...");
 
+  const extension = audioBlob.type.includes("ogg") ? "ogg" : "webm";
   const formData = new FormData();
   formData.append("session_id", sessionId);
-  formData.append("audio", audioBlob, "question.webm");
+  formData.append("audio", audioBlob, `question.${extension}`);
 
   try {
     const res = await fetch("/api/chat/voice", { method: "POST", body: formData });
@@ -356,14 +357,28 @@ textInput.addEventListener("keydown", (e) => {
 let mediaRecorder = null;
 let audioChunks = [];
 
+// Explicit codec so the Blob's declared type always matches what was
+// actually encoded — letting the browser pick a default and then relabeling
+// the Blob as a fixed "audio/webm" risks a mismatch Sarvam's parser rejects.
+const _PREFERRED_MIME_TYPES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/ogg;codecs=opus",
+];
+const _RECORDER_MIME_TYPE = _PREFERRED_MIME_TYPES.find(
+  (type) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(type)
+);
+
 async function startRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder = _RECORDER_MIME_TYPE
+      ? new MediaRecorder(stream, { mimeType: _RECORDER_MIME_TYPE })
+      : new MediaRecorder(stream);
     audioChunks = [];
     mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
     mediaRecorder.onstop = () => {
-      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || "audio/webm" });
       stream.getTracks().forEach((track) => track.stop());
       sendVoice(audioBlob);
     };
