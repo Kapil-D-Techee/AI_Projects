@@ -131,9 +131,12 @@ similar to Vercel's serverless cold starts, see the Redis note below.
    project at its root, set this service's **Root Directory** to wherever
    this folder lives in the repo.
 2. **Runtime + start command** are already configured for you via
-   `render.yaml` (a Render "Blueprint"): `.python-version` pins Python 3.14
-   to match local dev exactly (Render supports 3.14 directly, unlike some
-   other platforms), and the start command is
+   `render.yaml` (a Render "Blueprint"): `.python-version` pins Python
+   3.13 (local dev uses 3.14, but some dependencies — e.g. `pydantic`'s
+   Rust-based `pydantic-core` — don't have prebuilt wheels for 3.14 yet,
+   which fails the build on Render; 3.13 has mature wheel support and
+   still satisfies `pyproject.toml`'s `requires-python = ">=3.12"`), and
+   the start command is
    `uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT`.
    If you create the service by hand instead of via Blueprint, set the
    **Build Command** to `pip install -r requirements.txt` and paste the
