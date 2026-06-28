@@ -104,7 +104,7 @@ push-to-talk; typing works without mic permission.
 | Sarvam AI             | STT (saaras:v3) + TTS (bulbul:v3), default     | sarvam.ai            |
 | Groq (optional)       | Alternate LLM (Llama 3.3 70B) / STT backend    | console.groq.com     |
 | ElevenLabs (optional) | Alternate TTS backend                          | elevenlabs.io        |
-| Upstash Redis         | Session storage on Vercel (free Marketplace tier) | vercel.com / upstash.com |
+| Upstash Redis (optional) | Session storage across cold starts/replicas    | vercel.com / upstash.com |
 
 ## Switching providers later
 
@@ -116,9 +116,43 @@ Edit `.env` (no code changes needed):
 - `TTS_PROVIDER=google_cloud` once a Google Cloud TTS branch is added to
   `tts_service.py` (placeholder for native Tamil voice support).
 
+## Deploying on Railway
+
+Railway runs this as a normal long-lived container (not serverless), which is
+why it was chosen over Vercel: Vercel only deploys whatever's on `main`, so
+testing a branch like `Interactive-AI-Tutor-mini` separately from v1 isn't
+possible there. Railway deploys per-branch/per-service instead.
+
+1. **Create a new service** from this GitHub repo, pointing it at the
+   `Interactive-AI-Tutor-mini` branch (Railway → New Project → Deploy from
+   GitHub repo → select branch). If the repo also contains the v1 project,
+   set this service's **Root Directory** to wherever this folder lives in
+   the repo.
+2. **Runtime + start command** are already configured for you:
+   `runtime.txt` pins Python 3.13 (Railway's Railpack builder doesn't yet
+   support 3.14, which is what's used for local dev), and `railway.json`
+   sets the start command to
+   `uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT`.
+3. **Set your `.env` values** as Variables in the Railway service settings
+   (`GROQ_API_KEY`/`OPENAI_API_KEY`, `SARVAM_API_KEY`, `LLM_PROVIDER`,
+   `LLM_MODEL`, etc. — same names as `.env.example`).
+4. **Upstash Redis is optional here**, unlike on Vercel. Railway's container
+   stays warm between requests, so the in-memory fallback in
+   `session_store.py` keeps conversation history and staged-solution
+   progress just fine for a single instance. Only add the Upstash Redis
+   integration (which injects `UPSTASH_REDIS_REST_URL` /
+   `UPSTASH_REDIS_REST_TOKEN`) if you scale to multiple replicas, since
+   in-memory state isn't shared across them.
+5. Deploy. Railway's Railpack builder auto-detects Python via
+   `requirements.txt` and runs the start command from `railway.json`
+   directly — no shim module needed (that's a Vercel-only requirement,
+   see `vercel_app.py`).
+
 ## Deploying on Vercel
 
-This is a standard FastAPI app deployed as a single Vercel Function.
+This is a standard FastAPI app deployed as a single Vercel Function. Vercel
+only deploys the `main` branch by default, which is why Railway (above) is
+used for testing this branch independently.
 
 1. **Connect an Upstash Redis integration** (Vercel dashboard → your project
    → Storage → Marketplace → Upstash Redis). This injects
